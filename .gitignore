@@ -1,0 +1,28 @@
+# Terraform state must never be committed — it can contain secret values in
+# plaintext regardless of `sensitive = true` in HCL. State lives in remote,
+# encrypted backends (S3+KMS for AWS-touching config, Azure Storage for
+# Azure-touching config), set up once via bootstrap/.
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+
+# Local variable files may contain secrets during manual testing — real
+# secrets always come from GitHub Actions secrets / SSM / env vars, never
+# committed files.
+*.tfvars
+*.tfvars.json
+!example.tfvars
+
+# Plan output can contain sensitive values
+*.tfplan
+*.plan
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
