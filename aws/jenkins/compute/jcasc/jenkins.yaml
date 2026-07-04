@@ -19,7 +19,7 @@ credentials:
           - basicSSHUserPrivateKey:
               scope: GLOBAL
               id: linode-ssh-key
-              username: perez-wiki
+              username: jenkins-deploy
               privateKeySource:
                 directEntry:
                   privateKey: "${LINODE_SSH_KEY}"
@@ -37,15 +37,15 @@ jobs:
                     steps {
                       sshagent(credentials: ['linode-ssh-key']) {
                         sh """
-                          ssh -o StrictHostKeyChecking=no perez-wiki@${env.LINODE_HOST} '
+                          ssh -o StrictHostKeyChecking=no jenkins-deploy@$${env.LINODE_HOST} '
                             cd /home/perez-wiki/perez_wiki &&
                             git pull origin main &&
                             source venv/bin/activate &&
                             pip install --upgrade pip &&
                             pip install -r requirements.txt &&
-                            sudo cp files/perez_wiki /etc/nginx/sites-available/perez_wiki &&
+                            sudo cp /home/perez-wiki/perez_wiki/files/perez_wiki /etc/nginx/sites-available/perez_wiki &&
                             sudo systemctl reload nginx &&
-                            sudo cp files/perez_wiki.service /etc/systemd/system/perez_wiki.service &&
+                            sudo cp /home/perez-wiki/perez_wiki/files/perez_wiki.service /etc/systemd/system/perez_wiki.service &&
                             sudo systemctl daemon-reload &&
                             sudo systemctl restart perez_wiki
                           '
