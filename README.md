@@ -87,9 +87,11 @@ bootstrap/
   azure/    same idea, creates the Azure Storage Account + container used as
             the remote state backend for azure/monitoring.
 aws/
-  jenkins/  EC2 instance, security group, IAM role + OIDC trust policy for
-            GitHub Actions, SSM Parameter Store entries, Docker Compose
-            user-data for the Jenkins controller + agent containers.
+  jenkins/
+    iam/      OIDC provider + IAM roles -- applied once, manually, never
+              destroyed by the on-demand lifecycle.
+    compute/  EC2 instance, security group, SSM parameters, Docker Compose
+              (Jenkins + node_exporter) -- created/destroyed every session.
 azure/
   monitoring/  AKS cluster (Free tier), node pool (3x B2ats_v2), Helm releases
                for Grafana/Prometheus/Loki, Kubernetes Secrets wiring, RBAC.
