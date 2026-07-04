@@ -1,18 +1,13 @@
-# aws/jenkins — not yet built
+# aws/jenkins
 
-Single EC2 instance (t4g.medium, ARM/Graviton), on-demand and fully ephemeral.
-Runs the Jenkins controller and agents as containers via Docker Compose —
-not 3 separate nodes, not EKS (control-plane fee doesn't make sense for
-occasional use).
+Split into two Terraform configs with separate states. IAM inits everything we
+need for connectivity and authentication, so it needs to be applied manually
+then never destroyed by the one-button press.
 
-Will contain:
+- **`iam/`** — IAM config, applied once, manually, by hand. Never destroyed...
+  unless you want to run this whole thing again manually.
+- **`compute/`** — security group, EC2 instance (t4g.medium, Docker Compose
+  running Jenkins + node_exporter), SSM parameters. Created and destroyed
+  on demand.
 
-- EC2 instance + security group (public IP + SG locked down, no load balancer)
-- IAM role + OIDC trust policy so GitHub Actions can start/stop this instance
-  without long-lived AWS keys
-- SSM Parameter Store entries (SecureString, AWS-managed KMS key) for the
-  Linode SSH key and any other secrets Jenkins needs at runtime
-- User-data / Docker Compose file for the Jenkins controller + agent containers
-- Node/container exporter setup so Azure-side Prometheus can scrape this host
-
-Backend: remote state in the S3 bucket created by `bootstrap/aws`.
+See each directory's README for further details.
