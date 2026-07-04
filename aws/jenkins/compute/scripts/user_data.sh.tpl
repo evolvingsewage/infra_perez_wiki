@@ -8,17 +8,17 @@ curl -SL "https://github.com/docker/compose/releases/latest/download/docker-comp
 chmod +x /usr/local/bin/docker-compose
 
 mkdir -p /opt/jenkins/secrets /opt/jenkins/exporter-config /opt/jenkins/app/jcasc
-chmod 700 /opt/jenkins/secrets
+chmod 755 /opt/jenkins/secrets
 
 aws ssm get-parameter --with-decryption --region "${aws_region}" \
   --name "${ssh_key_param_name}" --query Parameter.Value --output text \
   > /opt/jenkins/secrets/linode_ssh_key
-chmod 600 /opt/jenkins/secrets/linode_ssh_key
+chmod 644 /opt/jenkins/secrets/linode_ssh_key
 
 aws ssm get-parameter --with-decryption --region "${aws_region}" \
   --name "${admin_password_param}" --query Parameter.Value --output text \
   > /opt/jenkins/secrets/admin_password
-chmod 600 /opt/jenkins/secrets/admin_password
+chmod 644 /opt/jenkins/secrets/admin_password
 
 exporter_hash=$(aws ssm get-parameter --with-decryption --region "${aws_region}" \
   --name "${exporter_hash_param}" --query Parameter.Value --output text)

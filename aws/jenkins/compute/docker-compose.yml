@@ -11,16 +11,13 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home
       - ./jcasc/jenkins.yaml:/var/jenkins_home/casc/jenkins.yaml:ro
-      - /opt/jenkins/secrets:/var/jenkins_home/secrets:ro
+      - /opt/jenkins/secrets:/run/secrets:ro
       - /var/run/docker.sock:/var/run/docker.sock
-    # Secrets are files on disk (never baked into the image or env at build
-    # time); load them into env vars here so JCasC's ${VAR} substitution
-    # picks them up, then install plugins and start Jenkins.
     entrypoint: >
-      bash -c "export ADMIN_PASSWORD=$$(cat /var/jenkins_home/secrets/admin_password) &&
-      export LINODE_SSH_KEY=$$(cat /var/jenkins_home/secrets/linode_ssh_key) &&
+      bash -c "export ADMIN_PASSWORD=$$(cat /run/secrets/admin_password) &&
+      export LINODE_SSH_KEY=$$(cat /run/secrets/linode_ssh_key) &&
       jenkins-plugin-cli --plugins docker-plugin docker-workflow git
-      ssh-agent configuration-as-code workflow-aggregator &&
+      ssh-agent configuration-as-code workflow-aggregator matrix-auth job-dsl &&
       /usr/local/bin/jenkins.sh"
 
   node-exporter:
