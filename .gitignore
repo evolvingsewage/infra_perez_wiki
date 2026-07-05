@@ -20,6 +20,13 @@ crash.*.log
 *.tfplan
 *.plan
 
+# keys i've generated for manual testing
+*_key
+*_key.pub
+id_*
+throwaway_key*
+jenkins_deploy_key*
+
 # OS/editor cruft
 .DS_Store
 Thumbs.db
