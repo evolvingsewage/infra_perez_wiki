@@ -108,6 +108,13 @@ data "aws_iam_policy_document" "github_actions_permissions" {
   }
 
   statement {
+    sid       = "SSMDescribeParameters"
+    effect    = "Allow"
+    actions   = ["ssm:DescribeParameters"]
+    resources = ["*"]
+  }
+
+  statement {
     sid       = "PassInstanceRole"
     effect    = "Allow"
     actions   = ["iam:PassRole"]
