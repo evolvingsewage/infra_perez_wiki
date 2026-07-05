@@ -28,6 +28,9 @@ jobs:
         working-directory: aws/jenkins/compute
     steps:
       - uses: actions/checkout@v4
+        with:
+          repository: evolvingsewage/infra_perez_wiki
+          ref: main
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
