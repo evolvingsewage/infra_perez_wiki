@@ -174,9 +174,8 @@ more than an entire `Standard_D2s_v7` node (7GiB) has. The chart's
 cache and not the results cache failed to schedule) size these memcached
 pods for a real production cluster; `kind`'s single, more generously
 resourced node never exposed this, since local testing never hit an
-actual memory ceiling. Fixed by cutting both down to `256` MB, plenty
-for a low-traffic personal-site demo with no expected log persistence
-anyway. 
+actual memory ceiling. Fixed by nuking caches, they never get warm on
+a stack that's torn down between sessions anyway.
 
 **Loki: `You have more than zero replicas configured for both the single
 binary and simple scalable targets`**: set `deploymentMode: SingleBinary`

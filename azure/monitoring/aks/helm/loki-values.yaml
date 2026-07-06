@@ -44,9 +44,8 @@ sidecar:
 serviceAccount:
   automountServiceAccountToken: false
 
-# Chart defaults size these for a real production cluster.
-# Way more than one Standard_D2s_v7 node has.
+# Memcached caches wont get used much. Disabled to free memory
 resultsCache:
-  allocatedMemory: 256
+  enabled: false
 chunksCache:
-  allocatedMemory: 256
+  enabled: false
