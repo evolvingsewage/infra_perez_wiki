@@ -31,3 +31,23 @@ terraform apply
 
 Requires `az login` already done (`az account show` to verify). Creates
 real Azure resources.
+
+## Troubleshooting
+
+**`Error: Plugin did not respond` on `provider "azurerm"`** — this is the
+provider binary itself crashing during setup, not a normal config error.
+In order of likelihood:
+
+1. Confirm the CLI session is actually healthy: `az account show` should
+   print clean JSON with your subscription ID/tenant. If it errors or looks
+   off, re-run `az login`.
+2. Check the CLI's output format hasn't been changed from the default the
+   provider expects: `az config get core.output` should be `json` (or
+   unset). If not: `az config set core.output=json`.
+3. Clear and re-download the provider plugin, in case it downloaded
+   corrupted:
+   ```
+   Remove-Item -Recurse -Force .terraform, .terraform.lock.hcl
+   terraform init
+   ```
+

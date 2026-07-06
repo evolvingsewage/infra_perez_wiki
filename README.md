@@ -31,7 +31,7 @@ flowchart TB
     end
 
     subgraph Azure["Azure — on-demand, fully ephemeral"]
-        AKS["AKS Free tier, 3x B2ats_v2 nodes"]
+        AKS["AKS Free tier, 3x D2s_v7 nodes"]
         GRAF["Grafana"]
         PROM["Prometheus"]
         LOKI["Loki"]
@@ -85,7 +85,7 @@ bootstrap/
             backend for aws/jenkins (SSE-S3, no customer-managed KMS key
             needed). Uses a deterministic account-ID-based bucket name and
             a guarded `import` block designed for belt-and-suspenders
-            idempotent re-runs -- but that automatic create/import dance
+            idempotent re-runs. That automatic create/import dance
             was never actually wired into `deploy-jenkins-only.yml`, which
             just assumes the bucket already exists (it does, applied
             manually once). See bootstrap/aws/README.md.
@@ -93,35 +93,45 @@ bootstrap/
             + container used as the remote state backend for azure/monitoring.
 aws/
   jenkins/
-    iam/      APPLIED. OIDC provider + IAM roles -- applied once, manually,
+    iam/      APPLIED. OIDC provider + IAM roles. Applied once, manually,
               never destroyed by the on-demand lifecycle. Permission set
-              grew from real CI errors (see project memory/history) --
-              expect to revisit if new AWS actions get exercised later.
+              grew from real CI errors (see project memory/history).
+              Expect to revisit if new AWS actions get exercised later.
     compute/  WORKING. EC2 instance, security group, SSM parameters, Docker
-              Compose (Jenkins + node_exporter) -- created every session via
+              Compose (Jenkins + node_exporter). Created every session via
               `terraform apply -replace="aws_instance.jenkins"` (needed
               because plain `apply` hasn't reliably detected user_data
               changes on this resource). Confirmed deploying successfully
               to the real Linode box via full GitHub Actions automation.
 azure/
-  monitoring/  NOT YET BUILT. Planned: AKS cluster (Free tier), node pool
-               (3x B2ats_v2), Helm releases for Grafana/Prometheus/Loki,
-               Kubernetes Secrets wiring, RBAC.
+  monitoring/
+    iam/    APPLIED. Azure AD app registration + federated credentials
+            (two, not one. Azure requires an exact subject match per
+            credential, no wildcards like AWS's trust policy) + RBAC role
+            assignments. Applied once, manually, never destroyed.
+    aks/    IN PROGRESS. First pass written: bare AKS cluster (Free tier),
+            node pool (3x D2s_v7. B-series burstable VMs (B2ats_v2,
+            B2ps_v2) aren't in this subscription's allowed SKU list at all,
+            a Free Trial restriction confirmed in both eastus and eastus2,
+            and Free Trial subscriptions can't request quota increases).
+            No Helm charts yet. Helm releases
+            for Grafana/Prometheus/Loki, Kubernetes Secrets wiring, and
+            in-cluster RBAC still to come.
 .github/workflows/
-  deploy-jenkins-only.yml  BUILT, working. Reusable (on: workflow_call) --
-                           applies aws/jenkins/compute (with -replace to
+  deploy-jenkins-only.yml  BUILT, working. Reusable (on: workflow_call).
+                           Applies aws/jenkins/compute (with -replace to
                            force a fresh instance every run), waits for
                            Jenkins via SSM Run Command (not a direct public
-                           curl -- port 8080 is only open to admin_cidr,
+                           curl. Port 8080 is only open to admin_cidr,
                            which the runner isn't), then triggers the
                            deploy-perez-wiki job the same way (crumb fetch
                            + POST, both over SSM). Called today from
                            perez_wiki's "Deploy via Jenkins" workflow,
                            which is workflow_dispatch-only (manual button)
-                           by design -- flip to `push: branches: [main]`
+                           by design. Flip to `push: branches: [main]`
                            there once confident in this path.
   destroy-jenkins.yml      BUILT, working. Self-contained (not a reusable
-                           workflow -- no perez_wiki push event drives this,
+                           workflow. No perez_wiki push event drives this,
                            it's a pure admin action), workflow_dispatch-only,
                            triggered directly from this repo's Actions tab.
                            Needs its own copy of the same 4 secrets
@@ -159,7 +169,16 @@ variable/output touching one is marked `sensitive = true`.
 | Piece | Compute | Per demo-hour | Always-on equivalent (for context) |
 |---|---|---|---|
 | AWS: EC2 t4g.medium, Jenkins | ~$0.034/hr | ~$0.034/hr | ~$24.82/mo |
-| Azure: AKS Free tier, 3x B2ats_v2 | ~$0.028/hr | ~$0.028/hr | ~$20.58/mo |
+| Azure: AKS Free tier, 3x D2s_v7 | ~$0.396/hr | ~$0.396/hr | ~$289/mo |
+
+Azure cost jumped substantially from an original ~$20.58/mo estimate: B-series
+burstable VMs (originally planned, ~$0.009-0.067/hr) turned out to not be
+available at all on this Free Trial subscription (confirmed in multiple
+regions) — Free Trial subscriptions can't request quota increases, so the
+cheapest actually-available option is `Standard_D2s_v7` at ~$0.132/hr/node.
+Still cheap for the actual on-demand usage pattern, e.g. 40 hours/month
+≈ $15.84 (~$16). Just a real, meaningful correction from the original
+estimate for anyone tempted to leave it running continuously.
 
 No NAT gateway, no load balancer, no EKS/AKS Standard-tier control-plane fee.
 Everything (including state-backend-adjacent storage created outside `bootstrap/`)
