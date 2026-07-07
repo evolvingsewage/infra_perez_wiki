@@ -15,7 +15,7 @@ other configs) plus a `bucket_already_exists` variable gating a native
 the bucket already exists or not.
 
 **That automatic create-or-import dance was never actually wired into
-`deploy-jenkins-only.yml`.** In practice, this config was applied manually,
+`deploy-jenkins.yml`.** In practice, this config was applied manually,
 once (`terraform apply -var="bucket_already_exists=false"`). The real
 workflow just computes the deterministic bucket name and assumes it
 already exists. It doesn't try to create it, retry on conflict, or import

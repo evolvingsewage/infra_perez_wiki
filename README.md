@@ -3,14 +3,14 @@
 Infrastructure for a Jenkins CI cluster (AWS) and a Grafana/Prometheus/Loki monitoring
 stack (Azure), built around my [perez_wiki](https://www.perez.wiki) website.
 
-**Status:** both sides work now. `bootstrap/aws`, `aws/jenkins/iam`, `bootstrap/azure`,
-and `azure/monitoring/iam` are all applied. `aws/jenkins/compute` deploys automatically
-through GitHub Actions: `perez_wiki`'s "Deploy via Jenkins" button triggers this repo's
-`deploy-jenkins-only.yml`, which spins up a fresh Jenkins instance and deploys to the
-Linode box. `azure/monitoring/aks` has been built, tested locally with `kind`, and
-confirmed working against a real AKS cluster: Grafana, Prometheus, and Loki all running,
-scraping the Linode box's metrics. It doesn't have a GitHub Actions button yet, so it's
-applied and destroyed by hand. See [Build order](#build-order) for what's left.
+**Status:** both sides work end to end, each with GitHub Actions deploy/destroy
+buttons, plus **"Deploy Everything"** / **"Destroy Everything"** buttons that do
+both stacks at once. `bootstrap/aws`, `aws/jenkins/iam`, `bootstrap/azure`, and
+`azure/monitoring/iam` are the persistent pieces, applied once. `aws/jenkins/compute`
+(Jenkins) and `azure/monitoring/aks` (Grafana/Prometheus/Loki) are the ephemeral
+stacks, spun up on demand. Prometheus scrapes both the Linode website box and the
+Jenkins box, confirmed `UP` against the real cluster. See [Build order](#build-order)
+for what's left.
 
 ## Architecture
 *Chart produced by Anthropic's Claude*
@@ -39,7 +39,7 @@ flowchart TB
         LOKI["Loki"]
     end
 
-    PW -- "push to main" --> DJ["deploy-jenkins-only workflow"]
+    PW -- "push to main" --> DJ["deploy-jenkins workflow"]
     DJ -- "AWS OIDC, starts instance" --> EC2
     EC2 -- "SSH: pull, install, swap configs, restart" --> WEB
     PW -. "workflow_dispatch, manual fallback" .-> RUNNER
@@ -62,15 +62,15 @@ flowchart TB
 ## Two independent lifecycle paths for Jenkins
 
 1. **Built and working**: `perez_wiki`'s "Deploy via Jenkins" workflow calls
-   `deploy-jenkins-only.yml` here. That caller is currently `workflow_dispatch`-only,
+   `deploy-jenkins.yml` here. That caller is currently `workflow_dispatch`-only,
    not yet wired to real pushes. It starts a fresh EC2 instance via AWS OIDC, waits for
    Jenkins via SSM Run Command, and triggers the `deploy-perez-wiki` job, which SSHes
    into the Linode box and runs the same steps the old self-hosted-runner workflow
    did: `git pull`, reinstall deps, swap the nginx/systemd config files, restart the
    service.
 
-   `deploy-jenkins-only.yml` also has its own `workflow_dispatch` trigger, so it
-   shows up as a **"Deploy Jenkins Only"** button in this repo's Actions tab too,
+   `deploy-jenkins.yml` also has its own `workflow_dispatch` trigger, so it
+   shows up as a **"Deploy Jenkins"** button in this repo's Actions tab too,
    for redeploying Jenkins without going through `perez_wiki`. That path reads this
    repo's own 4 secrets (the same ones `destroy-jenkins.yml` needs); the `perez_wiki`
    caller passes them in instead.
@@ -80,8 +80,9 @@ flowchart TB
    (`workflow_dispatch`, in this repo's Actions tab). That's on purpose, a manual
    button instead of something automatic, so a deploy can be inspected in the
    Jenkins UI before the instance disappears.
-2. **Not yet built**: manual "deploy everything" / "destroy everything" buttons that
-   stand up or tear down the full Jenkins and monitoring environment together, for demos.
+2. **Built**: **"Deploy Everything"** / **"Destroy Everything"** buttons that
+   stand up or tear down the full Jenkins and monitoring environment together
+   (each calls the two reusable workflows in parallel), for demos.
 
 The old self-hosted-runner workflow in `perez_wiki` stays registered on the Linode
 box as a **manual fallback** (`workflow_dispatch`, not auto-triggered), in case the
@@ -96,7 +97,7 @@ bootstrap/
             needed). Uses a deterministic account-ID-based bucket name and
             a guarded `import` block designed for belt-and-suspenders
             idempotent re-runs. That automatic create/import dance
-            was never actually wired into `deploy-jenkins-only.yml`, which
+            was never actually wired into `deploy-jenkins.yml`, which
             just assumes the bucket already exists (it does, applied
             manually once). See bootstrap/aws/README.md.
   azure/    APPLIED. Same idea, creates the Azure Storage Account and
@@ -134,11 +135,11 @@ azure/
             cluster, then torn down to stop the cost. ServiceAccount
             tokens and unused RBAC objects stripped where the workload
             doesn't need Kubernetes API access. Real secrets come from
-            Terraform variables. No GitHub Actions button for this side
-            yet, so it's applied and destroyed from a local shell. See
+            Terraform variables. Deployed and destroyed via GitHub Actions
+            buttons (deploy-monitoring.yml / destroy-monitoring.yml). See
             azure/monitoring/aks/README.md.
 .github/workflows/
-  deploy-jenkins-only.yml  BUILT, working. Both workflow_call (reusable,
+  deploy-jenkins.yml       BUILT, working. Both workflow_call (reusable,
                            called by perez_wiki's "Deploy via Jenkins") and
                            workflow_dispatch (its own button in this repo's
                            Actions tab, for redeploying without going through
@@ -154,29 +155,28 @@ azure/
                            Run Command payload. The perez_wiki caller stays
                            workflow_dispatch-only by design; flip it to
                            `push: branches: [main]` once confident.
-  destroy-jenkins.yml      BUILT, working. Self-contained, not a reusable
-                           workflow, since no perez_wiki push event should
-                           drive a destroy. workflow_dispatch-only,
-                           triggered directly from this repo's Actions tab.
-                           Needs its own copy of the same 4 secrets
+  destroy-jenkins.yml      BUILT, working. workflow_call + workflow_dispatch
+                           (its own button, and callable from
+                           destroy-everything). Needs the same 4 secrets
                            (LINODE_SSH_PRIVATE_KEY, JENKINS_ADMIN_PASSWORD,
-                           EXPORTER_BASIC_AUTH_HASH, ADMIN_CIDR) configured
-                           here, since it isn't called from perez_wiki.
-  deploy-monitoring.yml    BUILT. Azure equivalent of deploy-jenkins-only.
-                           workflow_call + workflow_dispatch. Azure OIDC
-                           login, applies azure/monitoring/aks (tf-init +
-                           apply), then lists the monitoring pods. Reads 2
-                           secrets from this repo: GRAFANA_ADMIN_PASSWORD,
-                           LINODE_EXPORTER_PASSWORD. Not yet run through the
-                           button (only applied by hand so far).
-  destroy-monitoring.yml   BUILT. workflow_dispatch-only, same concurrency
-                           group as deploy-monitoring. Needs the same 2
-                           secrets (destroy still needs the vars set).
-  deploy-everything.yml    NOT YET BUILT. Planned: calls deploy-jenkins-only
-                           and deploy-monitoring together, wires the
-                           cross-cloud scrape config.
-  destroy-everything.yml   NOT YET BUILT. Would call both destroy workflows
-                           together.
+                           EXPORTER_BASIC_AUTH_HASH, ADMIN_CIDR) in this repo,
+                           since it isn't called from perez_wiki.
+  deploy-monitoring.yml    BUILT, run through the button. Azure equivalent of
+                           deploy-jenkins. workflow_call + workflow_dispatch.
+                           Azure OIDC login, applies azure/monitoring/aks
+                           (tf-init + apply), then lists the monitoring pods.
+                           Reads GRAFANA_ADMIN_PASSWORD, LINODE_EXPORTER_PASSWORD,
+                           JENKINS_EXPORTER_PASSWORD (secrets) and the
+                           JENKINS_EXPORTER_TARGET repo variable.
+  destroy-monitoring.yml   BUILT. workflow_call + workflow_dispatch, same
+                           concurrency group as deploy-monitoring. Needs
+                           GRAFANA_ADMIN_PASSWORD + LINODE_EXPORTER_PASSWORD.
+  deploy-everything.yml    BUILT. THE ONE BUTTON. workflow_dispatch that calls
+                           deploy-jenkins and deploy-monitoring in
+                           parallel (independent stacks), forwarding secrets.
+  destroy-everything.yml   BUILT. Calls destroy-jenkins and destroy-monitoring
+                           in parallel. Leaves the persistent pieces
+                           (bootstrap, iam, the EIP) alone.
 ```
 
 ## Secrets
@@ -231,16 +231,17 @@ IPs/Public IPs left allocated but unattached, etc.).
 3. ✅ `azure/monitoring`. AKS + Helm-installed Grafana/Prometheus/Loki,
    RBAC hardening, secrets from Terraform variables. Built, tested locally
    with `kind`, and confirmed working against a real cluster.
-4. 🟡 Cross-cloud scrape config. Prometheus scrapes the Linode box's
-   `node_exporter` (confirmed) and the Jenkins EC2 box at a stable Elastic
-   IP (built, not yet confirmed against the real cluster). The Jenkins
-   target uses a static scrape job, the same shape as the Linode one.
-5. 🟡 `.github/workflows/`. AWS side (`deploy-jenkins-only.yml`,
-   `destroy-jenkins.yml`) built and working. Azure side
-   (`deploy-monitoring.yml`, `destroy-monitoring.yml`) built, not yet run
-   through the button. All `workflow_dispatch` (manual), not yet wired to
-   real pushes. `deploy-everything.yml`/`destroy-everything.yml` not
-   started.
+4. ✅ Cross-cloud scrape config. Prometheus scrapes both the Linode box's
+   `node_exporter` and the Jenkins EC2 box (at a stable Elastic IP), both
+   confirmed `UP` against the real cluster. The Jenkins target uses a static
+   scrape job, the same shape as the Linode one.
+5. ✅ `.github/workflows/`. Both sides built and working:
+   `deploy-jenkins`/`destroy-jenkins` (AWS),
+   `deploy-monitoring`/`destroy-monitoring` (Azure), and
+   `deploy-everything`/`destroy-everything` (both stacks in one button).
+   All `workflow_dispatch`. Still not wired to real pushes: `perez_wiki`'s
+   "Deploy via Jenkins" stays manual until that's flipped to
+   `push: branches: [main]`.
 6. ⬜ Log upload-on-deploy / download-on-teardown to the user's local
    machine. Deferred, lowest priority, tackled after everything else is
    connected.

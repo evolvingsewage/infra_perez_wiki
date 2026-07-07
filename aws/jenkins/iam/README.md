@@ -19,12 +19,12 @@ Creates:
   management, SSM parameter management under `/infra-perez-wiki/*` (plus
   `DescribeParameters`/`ListTagsForResource`, which the provider also
   needs), **SSM Run Command** (`SendCommand`/`GetCommandInvocation`/
-  `ListCommandInvocations`, used by `deploy-jenkins-only.yml` to check
+  `ListCommandInvocations`, used by `deploy-jenkins.yml` to check
   Jenkins's readiness and trigger the deploy job over SSM instead of the
   public network, since port 8080 is only open to `admin_cidr`), and this
   role's own Terraform state objects. Most of these were found empirically
   from real `AccessDeniedException` errors during CI runs. Both
-  `deploy-jenkins-only.yml` and `destroy-jenkins.yml` have run through
+  `deploy-jenkins.yml` and `destroy-jenkins.yml` have run through
   this role successfully.
 - `infra-perez-wiki-jenkins-instance` role and instance profile, assumed
   by the EC2 instance itself, scoped to reading its own SSM parameters
