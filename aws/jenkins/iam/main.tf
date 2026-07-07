@@ -138,6 +138,19 @@ data "aws_iam_policy_document" "github_actions_permissions" {
     actions   = ["iam:PassRole"]
     resources = [aws_iam_role.jenkins_instance.arn]
   }
+
+  # compute attaches the persistent EIP allocated below. These actions can't
+  # be scoped by resource, so resources = ["*"].
+  statement {
+    sid    = "ElasticIPAssociation"
+    effect = "Allow"
+    actions = [
+      "ec2:AssociateAddress",
+      "ec2:DescribeAddresses",
+      "ec2:DisassociateAddress",
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "github_actions_jenkins" {
@@ -188,4 +201,16 @@ resource "aws_iam_role_policy" "jenkins_instance" {
 resource "aws_iam_instance_profile" "jenkins" {
   name = "infra-perez-wiki-jenkins-instance"
   role = aws_iam_role.jenkins_instance.name
+}
+
+# Stable public address for the Jenkins box so Prometheus scrapes a fixed
+# target across redeploys. Lives here (persistent), not compute (ephemeral),
+# so the address survives teardown. compute attaches it via eip_association.
+resource "aws_eip" "jenkins" {
+  domain = "vpc"
+
+  tags = {
+    Name    = "infra-perez-wiki-jenkins"
+    Project = "infra-perez-wiki"
+  }
 }

@@ -49,9 +49,11 @@ resource "helm_release" "prometheus" {
   chart      = "prometheus"
   namespace  = kubernetes_namespace.monitoring.metadata[0].name
 
-  # Renders the real password via templatefile(), see helm/prometheus-values.yaml.tftpl
+  # Renders the real passwords/targets via templatefile(), see helm/prometheus-values.yaml.tftpl
   values = [templatefile("${path.module}/helm/prometheus-values.yaml.tftpl", {
-    linode_exporter_password = var.linode_exporter_password
+    linode_exporter_password  = var.linode_exporter_password
+    jenkins_exporter_target   = var.jenkins_exporter_target
+    jenkins_exporter_password = var.jenkins_exporter_password
   })]
 }
 

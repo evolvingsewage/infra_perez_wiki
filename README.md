@@ -103,16 +103,21 @@ bootstrap/
             container used as the remote state backend for azure/monitoring.
 aws/
   jenkins/
-    iam/      APPLIED. OIDC provider + IAM roles. Applied once, manually,
-              never destroyed by the on-demand lifecycle. Permission set
-              grew from real CI errors (see project memory/history).
-              Expect to revisit if new AWS actions get exercised later.
+    iam/      APPLIED. OIDC provider + IAM roles, plus a persistent Elastic
+              IP for the Jenkins box (a stable scrape target for Prometheus,
+              kept here so the address survives teardown). Applied once,
+              manually, never destroyed by the on-demand lifecycle.
+              Permission set grew from real CI errors (see project
+              memory/history). Expect to revisit if new AWS actions get
+              exercised later.
     compute/  WORKING. EC2 instance, security group, SSM parameters, Docker
-              Compose (Jenkins + node_exporter). Created every session via
-              `terraform apply -replace="aws_instance.jenkins"` (needed
-              because plain `apply` hasn't reliably detected user_data
-              changes on this resource). Confirmed deploying successfully
-              to the real Linode box via full GitHub Actions automation.
+              Compose (Jenkins + node_exporter), and the EIP association
+              (attaches iam's Elastic IP to the instance). Created every
+              session via `terraform apply -replace="aws_instance.jenkins"`
+              (needed because plain `apply` hasn't reliably detected
+              user_data changes on this resource). Confirmed deploying
+              successfully to the real Linode box via full GitHub Actions
+              automation.
 azure/
   monitoring/
     iam/    APPLIED. Azure AD app registration and federated credentials.
@@ -226,9 +231,10 @@ IPs/Public IPs left allocated but unattached, etc.).
 3. ✅ `azure/monitoring`. AKS + Helm-installed Grafana/Prometheus/Loki,
    RBAC hardening, secrets from Terraform variables. Built, tested locally
    with `kind`, and confirmed working against a real cluster.
-4. 🟡 Cross-cloud scrape config. Prometheus scraping the Linode box's
-   `node_exporter` is confirmed working. Scraping the Jenkins EC2
-   instance's own `node_exporter` isn't wired up yet.
+4. 🟡 Cross-cloud scrape config. Prometheus scrapes the Linode box's
+   `node_exporter` (confirmed) and the Jenkins EC2 box at a stable Elastic
+   IP (built, not yet confirmed against the real cluster). The Jenkins
+   target uses a static scrape job, the same shape as the Linode one.
 5. 🟡 `.github/workflows/`. AWS side (`deploy-jenkins-only.yml`,
    `destroy-jenkins.yml`) built and working. Azure side
    (`deploy-monitoring.yml`, `destroy-monitoring.yml`) built, not yet run
@@ -238,3 +244,15 @@ IPs/Public IPs left allocated but unattached, etc.).
 6. ⬜ Log upload-on-deploy / download-on-teardown to the user's local
    machine. Deferred, lowest priority, tackled after everything else is
    connected.
+
+## Stretch goals (not built)
+
+- **AKS→AWS OIDC federation for EC2 service discovery.** Instead of a
+  static Elastic IP, let Prometheus discover the Jenkins box via
+  `ec2_sd_configs`, authenticating to the AWS API with a short-lived
+  web-identity token (AWS IAM trusting the AKS OIDC issuer). Keeps the
+  no-long-lived-credentials principle intact across a third federation, but
+  it's a big cross-cloud build, widens the CI IAM role to create IAM
+  resources, and can only be tested against the real (paid) cluster. Chose
+  the Elastic IP instead: ~$3.60/mo, testable on `kind`, and a pattern I
+  can actually explain. See interview_study.md for the full reasoning.

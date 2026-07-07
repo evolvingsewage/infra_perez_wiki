@@ -102,3 +102,10 @@ resource "aws_instance" "jenkins" {
     Project = "infra-perez-wiki"
   }
 }
+
+# Attaches the persistent EIP from iam so the box keeps a stable public
+# address across -replace redeploys (what Prometheus scrapes).
+resource "aws_eip_association" "jenkins" {
+  instance_id   = aws_instance.jenkins.id
+  allocation_id = data.terraform_remote_state.iam.outputs.jenkins_eip_allocation_id
+}

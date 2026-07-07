@@ -45,20 +45,33 @@ Registration can take a few minutes, but if you're impatient:
 az provider show --namespace Microsoft.ContainerService --query registrationState
 ```
 
-## Secrets
+## Secrets and variables
 
-Two sensitive Terraform variables, no defaults: `grafana_admin_password`,
-`linode_exporter_password` (must match the Linode box's current
-`node_exporter` hash). Set before `plan`/`apply`:
+Sensitive Terraform variables:
+
+- `grafana_admin_password` (secret `GRAFANA_ADMIN_PASSWORD`)
+- `linode_exporter_password` (secret `LINODE_EXPORTER_PASSWORD`), must match
+  the Linode box's current `node_exporter` hash
+- `jenkins_exporter_password` (secret `JENKINS_EXPORTER_PASSWORD`), optional,
+  must match the Jenkins box's `node_exporter` hash. Only needed to scrape
+  the Jenkins box; defaults to empty.
+
+Plus one non-secret:
+
+- `jenkins_exporter_target` (repo Variable `JENKINS_EXPORTER_TARGET`), the
+  Jenkins Elastic IP as `host:port` (e.g. `1.2.3.4:9100`). An IP isn't a
+  secret, so it's a Variable, not a Secret. Empty omits the Jenkins scrape
+  job, so monitoring deploys fine on its own.
+
+The `deploy-monitoring.yml` workflow passes all of these as `TF_VAR_*` env
+on the apply step. Set them locally the same way for a hand apply:
 
 ```powershell
 $env:TF_VAR_grafana_admin_password = "<real password>"
-$env:TF_VAR_linode_exporter_password = "<must match the box's current node_exporter hash>"
+$env:TF_VAR_linode_exporter_password = "<matches the Linode box's hash>"
+$env:TF_VAR_jenkins_exporter_target = "<jenkins EIP>:9100"   # optional
+$env:TF_VAR_jenkins_exporter_password = "<matches the Jenkins box's hash>"  # optional
 ```
-
-Not yet wired into a GitHub Actions workflow. When that's built, these
-become `secrets.GRAFANA_ADMIN_PASSWORD` / `secrets.LINODE_EXPORTER_PASSWORD`
-set as `TF_VAR_*` env on the apply step, same as `deploy-jenkins-only.yml`.
 
 ## Local (`kind`) vs. Azure Live Deployment: Values File Distinction
 

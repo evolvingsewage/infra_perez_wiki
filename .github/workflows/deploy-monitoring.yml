@@ -8,6 +8,9 @@ on:
         required: true
       LINODE_EXPORTER_PASSWORD:
         required: true
+      # optional: only needed to scrape the Jenkins box
+      JENKINS_EXPORTER_PASSWORD:
+        required: false
   # for manual use
   workflow_dispatch:
 
@@ -48,11 +51,15 @@ jobs:
       - name: Terraform init
         run: bash azure/scripts/tf-init.sh azure/monitoring/aks azure-monitoring-aks.tfstate
 
+      # JENKINS_EXPORTER_TARGET is a repo Variable (the EIP, not secret);
+      # empty just omits the Jenkins scrape job.
       - name: Terraform apply
         working-directory: azure/monitoring/aks
         env:
           TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
           TF_VAR_linode_exporter_password: ${{ secrets.LINODE_EXPORTER_PASSWORD }}
+          TF_VAR_jenkins_exporter_target: ${{ vars.JENKINS_EXPORTER_TARGET }}
+          TF_VAR_jenkins_exporter_password: ${{ secrets.JENKINS_EXPORTER_PASSWORD }}
         run: terraform apply -auto-approve
 
       # helm_release wait=true already gates on pod readiness; this just

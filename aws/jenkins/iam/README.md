@@ -30,6 +30,13 @@ Creates:
   by the EC2 instance itself, scoped to reading its own SSM parameters
   plus `AmazonSSMManagedInstanceCore` (Session Manager shell access, no
   open SSH port).
+- A persistent Elastic IP for the Jenkins box. It lives here (not in the
+  ephemeral `compute/`) so the address stays the same across redeploys,
+  which lets Prometheus scrape the box at a fixed target. `compute/`
+  attaches it. The GitHub Actions policy also gained
+  `ec2:AssociateAddress`/`DisassociateAddress`/`DescribeAddresses` for that
+  attach step. Costs ~$3.60/mo while allocated with Jenkins torn down
+  (free while attached to a running instance).
 
 ## Applying (manual, one-time)
 

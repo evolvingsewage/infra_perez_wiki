@@ -4,7 +4,8 @@ server:
   persistentVolume:
     enabled: false
 
-# Scrapes node_exporter on the real Linode website box, not an in-cluster target.
+# Scrapes node_exporter on the Linode website box and, if a target is given,
+# the Jenkins EC2 box (its EIP). Both external, not in-cluster.
 extraScrapeConfigs: |
   - job_name: 'perez-wiki-linode'
     scheme: http
@@ -13,6 +14,15 @@ extraScrapeConfigs: |
       password: ${linode_exporter_password}
     static_configs:
       - targets: ['perez.wiki:9100']
+%{ if jenkins_exporter_target != "" ~}
+  - job_name: 'perez-wiki-jenkins'
+    scheme: http
+    basic_auth:
+      username: metrics
+      password: ${jenkins_exporter_password}
+    static_configs:
+      - targets: ['${jenkins_exporter_target}']
+%{ endif ~}
 
 alertmanager:
   enabled: false

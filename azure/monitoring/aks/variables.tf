@@ -43,3 +43,17 @@ variable "linode_exporter_password" {
   type        = string
   sensitive   = true
 }
+
+# host:port of the Jenkins EC2 node_exporter (its EIP). Empty omits the job,
+# so monitoring can deploy standalone without Jenkins up.
+variable "jenkins_exporter_target" {
+  type    = string
+  default = ""
+}
+
+variable "jenkins_exporter_password" {
+  description = "node_exporter basic-auth password on the Jenkins box"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

@@ -3,8 +3,10 @@
 **Status: confirmed working**, deployed successfully through full GitHub Actions
 automation (`perez_wiki`'s "Deploy via Jenkins" button triggers `deploy-jenkins-only.yml`).
 
-The ephemeral half: security group, EC2 instance, and the SSM parameters
-Jenkins needs at boot time.
+The ephemeral half: security group, EC2 instance, the SSM parameters
+Jenkins needs at boot time, and the association that attaches `iam/`'s
+persistent Elastic IP to the instance (so the box keeps a stable public
+address across `-replace` redeploys, which is what Prometheus scrapes).
 
 What the instance runs:
 
