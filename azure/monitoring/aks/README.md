@@ -116,10 +116,8 @@ also needs the two `TF_VAR_*` secrets above set in the shell.
 
 ## Local testing with `kind` 
 
-Iterating on Helm values against the live AKS cluster costs real money per
-hour and takes time to spin up. I ain't a bank and this stuff adds up QUICK.
- 
-Here's how I tested against a free local cluster first:
+Iterating on Helm values against a full AKS cluster is slow to spin up each
+time, so I tested against a free local cluster first:
 
 ### Prerequisites
 Docker Desktop (with WSL2) + `kind`/`kubectl`/`helm` installed locally.

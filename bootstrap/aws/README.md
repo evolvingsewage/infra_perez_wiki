@@ -31,4 +31,4 @@ terraform plan -var="bucket_already_exists=false"   # or =true if it already exi
 ```
 
 Requires AWS CLI credentials already configured (`aws sts get-caller-identity`
-to verify). Creates a live S3 bucket.
+to verify).
