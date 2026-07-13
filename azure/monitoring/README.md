@@ -8,8 +8,7 @@ makes the automation possible in the first place.
   assignments. Applied once, manually. Never destroyed by the on-demand
   lifecycle.
 - **`aks/`**: AKS cluster, Helm releases for Grafana/Prometheus/Loki, and
-  in-cluster RBAC (separate from the Azure RBAC in `iam/`). Built, tested
-  locally with `kind`, and confirmed working against a real cluster.
+  in-cluster RBAC (separate from the Azure RBAC in `iam/`).
   Created and destroyed on demand, same as `aws/jenkins/compute`.
 
 AKS cluster, Free tier (control plane genuinely $0), 2 worker nodes

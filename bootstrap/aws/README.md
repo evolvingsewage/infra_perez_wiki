@@ -1,6 +1,6 @@
 # bootstrap/aws
 
-**Status: applied.** Creates the AWS resources needed to hold Terraform state
+Creates the AWS resources needed to hold Terraform state
 for `aws/jenkins`:
 
 - S3 bucket for state. Versioned, SSE-S3 (AES256) encrypted, all public

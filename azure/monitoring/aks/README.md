@@ -1,14 +1,10 @@
 # azure/monitoring/aks
 
-**Status:** built, tested locally with `kind`, and confirmed working
-against a real AKS cluster. Grafana, Prometheus, and Loki all ran, RBAC
-hardening held up, and the datasources connected. The cluster was then
-torn down to stop the cost. Real secrets (`grafana_admin_password`,
+Real secrets (`grafana_admin_password`,
 `linode_exporter_password`) come from sensitive Terraform variables, see
 "Secrets".
 
-Tested locally, and found many an error, so check "Troubleshooting" for more
-details there.
+Check "Troubleshooting" for errors found while testing locally.
 
 Creates:
 
@@ -273,7 +269,7 @@ the problem is reload/caching, not the values file.
 
 ## Cross-cloud target: the real Linode website box
 
-Confirmed working: `node_exporter` installed natively (no Docker, matching
+`node_exporter` installed natively (no Docker, matching
 how the box already runs everything else) on the Linode box as a systemd
 service, basic-auth protected, port 9100 opened on **both** firewall layers
 (Linode Cloud Firewall + the box's own nftables, same two-layer lesson

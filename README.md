@@ -97,9 +97,7 @@ aws/
               (attaches iam's Elastic IP to the instance). Created every
               session via `terraform apply -replace="aws_instance.jenkins"`
               (needed because plain `apply` hasn't reliably detected
-              user_data changes on this resource). Confirmed deploying
-              successfully to the real Linode box via full GitHub Actions
-              automation.
+              user_data changes on this resource).
 azure/
   monitoring/
     iam/    Azure AD app registration and federated credentials.
@@ -112,8 +110,7 @@ azure/
             subscription's allowed SKU list at all, a Free Trial
             restriction, and the vCPU quota only allows 4 total, hence 2
             nodes instead of 3), and Helm releases for
-            Grafana/Prometheus/Loki. Confirmed working against a real
-            cluster, then torn down to stop the cost. ServiceAccount
+            Grafana/Prometheus/Loki. ServiceAccount
             tokens and unused RBAC objects stripped where the workload
             doesn't need Kubernetes API access. Real secrets come from
             Terraform variables. Deployed and destroyed via GitHub Actions
