@@ -1,7 +1,8 @@
 # infra_perez_wiki
 
 Infrastructure for a Jenkins CI cluster (AWS) and a Grafana/Prometheus/Loki monitoring
-stack (Azure), built around my [perez_wiki](https://www.perez.wiki) website.
+stack (Azure), built around my [perez_wiki](https://www.perez.wiki) website. A 
+demo of some basic terraform and cloud concepts.
 
 ## Architecture
 *Chart produced by Anthropic's Claude*
@@ -159,7 +160,7 @@ azure/
 
 ## Secrets
 
-- **GitHub Secrets** (this repo's Settings → Secrets and variables → Actions):
+- **GitHub Secrets** :
   - `LINODE_SSH_PRIVATE_KEY` — SSH key Jenkins uses to deploy to the Linode box
   - `JENKINS_ADMIN_PASSWORD` — the Jenkins `admin` user password
   - `EXPORTER_BASIC_AUTH_HASH` — bcrypt hash for the Jenkins node_exporter's basic auth
@@ -168,32 +169,27 @@ azure/
   - `LINODE_EXPORTER_PASSWORD` — password Prometheus sends to scrape the Linode box
   - `JENKINS_EXPORTER_PASSWORD` — password Prometheus sends to scrape the Jenkins box
 
-  Plus one non-secret **Variable**, `JENKINS_EXPORTER_TARGET` (the Jenkins Elastic
-  IP as `host:port`); an IP isn't sensitive, so it's a Variable, not a Secret.
-- **AWS side:** SSM Parameter Store, Standard tier, `SecureString` type, encrypted
+- **GitHub Variables** :
+  - `JENKINS_EXPORTER_TARGET` - the Jenkins Elastic IP as `host:port`
+
+- **External Secrets**
+- *AWS side:* SSM Parameter Store, Standard tier, `SecureString` type, encrypted
   with the AWS-managed KMS key (`aws/ssm`) to stay completely free.
-- **Azure side:** no Key Vault. Real values come from Terraform variables
+- *Azure side:*  values come from Terraform variables
   (`grafana_admin_password`, `linode_exporter_password`), set as `TF_VAR_*`
   environment variables and injected into the Helm releases at apply time.
-  None of these pods need the Kubernetes API for anything, so their
-  ServiceAccounts don't get a token at all. See azure/monitoring/aks/README.md
-  for the reasoning.
-
-**Non-negotiable when writing the Terraform:** state backends must be remote and
-encrypted (see `bootstrap/`) and never committed. `sensitive = true` only hides
-values from CLI output, not from the state file itself. Secrets are never echoed
-in workflow steps, always passed via `env:` (not CLI args), and any Terraform
-variable/output touching one is marked `sensitive = true`.
+  See azure/monitoring/aks/README.md
 
 ## Cost (on-demand, fully ephemeral)
+
+You might be saying - that seems backwards. Why is your monitoring ephemeral and
+your app persistent? Well, I don't have 230 bucks a month to burn on a small app
+that is mainly evidence of my being able to do some basic stuff in the cloud.
 
 | Piece | Compute | Per demo-hour | Always-on equivalent (for context) |
 |---|---|---|---|
 | AWS: EC2 t4g.medium, Jenkins | ~$0.034/hr | ~$0.034/hr | ~$24.82/mo |
 | Azure: AKS Free tier, 2x D2s_v7 | ~$0.264/hr | ~$0.264/hr | ~$193/mo |
 
-No NAT gateway, no load balancer, no EKS/AKS Standard-tier control-plane fee.
-Everything (including state-backend-adjacent storage created outside `bootstrap/`)
-is destroyed between sessions. See each module's README for the exact
-`terraform destroy` scope and any easy-to-miss lingering resources (Elastic
-IPs/Public IPs left allocated but unattached, etc.).
+Everything but the bootstraps are destroyed between sessions. 
+See each module's README for the exact `terraform destroy` scope.
