@@ -46,24 +46,23 @@ flowchart TB
     GRAF --> LOKI
 ```
 
-## Usage
-
-Everything runs from this repo's **Actions** tab. All buttons are manual
-(`workflow_dispatch`):
-
-- **Deploy Everything** / **Destroy Everything** - both stacks at once, in parallel.
-- **Deploy Jenkins** / **Destroy Jenkins** - AWS
-- **Deploy Monitoring** / **Destroy Monitoring** - Azure
-
-A successful deploy writes the access commands into the summary panel.
-
-One-time setup before any button works:
+## Setup
 
 1. Apply the persistent configs by hand: `bootstrap/aws`, `bootstrap/azure`,
    `aws/jenkins/iam`, `azure/monitoring/iam`. They hold the state backends, OIDC
    trust, and the Jenkins Elastic IP, all of which must outlive the ephemeral
    stacks. Each has its own README.
 2. Set the repo secrets and variables (see [Secrets](#secrets)).
+
+## Usage
+
+Everything runs from this repo's **Actions** tab. 
+
+- **Deploy Everything** / **Destroy Everything** - both stacks at once, in parallel.
+- **Deploy Jenkins** / **Destroy Jenkins** - AWS
+- **Deploy Monitoring** / **Destroy Monitoring** - Azure
+
+A successful deploy writes the access commands into the summary panel.
 
 The stacks bill by the hour, so hit the destroy button when you're done. I ain't
 made of money here.
