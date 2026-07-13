@@ -70,8 +70,9 @@ Each directory has its own README with more information.
 
 ```
 bootstrap/
-  aws/      Remote state backend (S3) for aws/jenkins.
+  aws/      Remote state backend (S3) for aws/jenkins. Applied once.
   azure/    Remote state backend (Storage Account) for azure/monitoring.
+            Applied once.
 aws/
   jenkins/
     iam/      OIDC provider, IAM roles, persistent Elastic IP. Applied once.
@@ -122,5 +123,5 @@ that is mainly evidence of my being able to do some basic stuff in the cloud.
 | AWS: EC2 t4g.medium, Jenkins | ~$0.034/hr | ~$0.034/hr | ~$24.82/mo |
 | Azure: AKS Free tier, 2x D2s_v7 | ~$0.264/hr | ~$0.264/hr | ~$193/mo |
 
-Everything but the bootstraps are destroyed between sessions. 
+Everything but the bootstraps and iam are destroyed between sessions. 
 See each module's README for the exact `terraform destroy` scope.
