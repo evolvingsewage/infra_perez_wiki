@@ -7,13 +7,13 @@ address across `-replace` redeploys, which is what Prometheus scrapes).
 
 What the instance runs:
 
-- **Jenkins controller** (`jenkins/jenkins:lts-jdk17`), configured entirely
-  via JCasC (`jcasc/jenkins.yaml`): one `admin` user, one pipeline job
-  (`deploy-perez-wiki`) that SSHes into the Linode box as the dedicated
-  `jenkins-deploy` user and runs the same steps the self-hosted-runner
-  workflow did. The Docker socket is mounted so the Docker plugin can spin
-  up build agents as containers on demand, instead of running separate
-  long-lived agent containers.
+- **Jenkins controller**, built from `Dockerfile` (`jenkins/jenkins:lts-jdk17`
+  plus the Docker CLI + compose plugin). Configured via JCasC
+  (`jcasc/jenkins.yaml`): one `admin` user and the `deploy-perez-wiki`
+  pipeline job, which pulls its definition from perez_wiki's `Jenkinsfile`
+  (that repo owns the stages). The Docker socket is mounted and the jenkins
+  user is added to the host docker group (`group_add`) so those stages can
+  run `docker compose`.
 - **node_exporter**, basic-auth protected, scraped by the Prometheus in
   `azure/monitoring/aks` (this scrape config is still not wired up, only
   the Linode box's `node_exporter` is scraped so far).

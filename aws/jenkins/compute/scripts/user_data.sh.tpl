@@ -37,7 +37,12 @@ cat > /opt/jenkins/app/docker-compose.yml <<'COMPOSE_EOF'
 ${docker_compose_content}
 COMPOSE_EOF
 
+cat > /opt/jenkins/app/Dockerfile <<'DOCKERFILE_EOF'
+${dockerfile_content}
+DOCKERFILE_EOF
+
 echo "LINODE_HOST=${linode_host}" > /opt/jenkins/app/.env
+echo "DOCKER_GID=$(getent group docker | cut -d: -f3)" >> /opt/jenkins/app/.env
 
 cd /opt/jenkins/app
-docker-compose up -d
+docker-compose up -d --build

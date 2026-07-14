@@ -92,6 +92,7 @@ resource "aws_instance" "jenkins" {
     admin_password_param   = aws_ssm_parameter.jenkins_admin_password.name
     linode_host            = var.linode_host
     docker_compose_content = file("${path.module}/docker-compose.yml")
+    dockerfile_content     = file("${path.module}/Dockerfile")
     jcasc_content          = file("${path.module}/jcasc/jenkins.yaml")
   })
 

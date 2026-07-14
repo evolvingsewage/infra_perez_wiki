@@ -25,38 +25,20 @@ credentials:
                   privateKey: "${LINODE_SSH_KEY}"
 
 jobs:
+  # The pipeline itself (test -> deploy -> smoke) lives in perez_wiki's
+  # Jenkinsfile. This job just checks it out and runs it, so infra owns the
+  # runner and perez_wiki owns how it's built/tested/deployed.
   - script: >
       pipelineJob('deploy-perez-wiki') {
         definition {
-          cps {
-            script('''
-              pipeline {
-                agent any
-                stages {
-                  stage('Deploy') {
-                    steps {
-                      sshagent(credentials: ['linode-ssh-key']) {
-                        sh """
-                          ssh -o StrictHostKeyChecking=no jenkins-deploy@$env.LINODE_HOST '
-                            cd /home/perez-wiki/perez_wiki &&
-                            git pull origin main &&
-                            source venv/bin/activate &&
-                            pip install --upgrade pip &&
-                            pip install -r requirements.txt &&
-                            sudo cp /home/perez-wiki/perez_wiki/files/perez_wiki /etc/nginx/sites-available/perez_wiki &&
-                            sudo systemctl reload nginx &&
-                            sudo cp /home/perez-wiki/perez_wiki/files/perez_wiki.service /etc/systemd/system/perez_wiki.service &&
-                            sudo systemctl daemon-reload &&
-                            sudo systemctl restart perez_wiki
-                          '
-                        """
-                      }
-                    }
-                  }
-                }
+          cpsScm {
+            scm {
+              git {
+                remote { url('https://github.com/isa-p941/perez_wiki.git') }
+                branch('main')
               }
-            '''.stripIndent())
-            sandbox()
+            }
+            scriptPath('Jenkinsfile')
           }
         }
       }
